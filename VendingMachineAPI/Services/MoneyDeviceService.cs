@@ -7,9 +7,9 @@ namespace VendingMachineAPI.Services
     public class MoneyDeviceService: IMoneyDeviceService
     {
         private decimal _amount = 0;
-        private readonly Lock _lock = new();
+        private readonly SemaphoreSlim _lock = new(1,1);
 
-        public event Action<decimal>? BalanceChanged;
+        public event Func<decimal,Task>? BalanceChanged;
         private IHubContext<MoneyHub> _moneyHub;
         private IThermostatService _thermostatService;
 
@@ -20,42 +20,46 @@ namespace VendingMachineAPI.Services
             _thermostatService.StatusChange += _thermostatService_StatusChange;
         }
 
-        private void _thermostatService_StatusChange(bool working)
+
+        private async Task _thermostatService_StatusChange(bool working)
         {
             if (!working)
             {
                 decimal refund = _amount;
-                RefundAsync();
-                NotifyMoneyAsync($"Refund: {refund} Total balance 0 \n System out of ordr ", refund);
+                await RefundAsync();
+                await NotifyMoneyAsync($"Refund: {refund} Total balance 0 \n System out of ordr ", refund);
             }
             else
             {
-                NotifyMoneyAsync($"Please insert Money .... ",_amount);
+                await NotifyMoneyAsync($"Please insert Money .... ",_amount);
             }
             
         }
 
         public async Task InsetMoneyAsync(decimal amount)
         {
-            
-            lock (_lock)
+            await _lock.WaitAsync();
+            try
             {
                 _amount += amount;
-            }
-            await NotifyMoneyAsync($"Total balance: {_amount}", _amount);
 
-            if (!_thermostatService.Isworking())
-            {
-                await RefundAsync();
+                await NotifyMoneyAsync($"Total balance: {_amount}", _amount);
+
+                if (!_thermostatService.Isworking())
+                {
+                    await RefundAsync();
+                }
+                else
+                {
+                    // Fire the event when money is inserted
+                    BalanceChanged?.Invoke(_amount);
+                }
             }
-            else
+            finally
             {
-                // Fire the event when money is inserted
-                BalanceChanged?.Invoke(_amount);
+                _lock.Release();
             }
         }
-
-        
 
         public async Task NotifyMoneyAsync(string message, decimal total)
         {

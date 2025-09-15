@@ -5,10 +5,10 @@ namespace VendingMachineAPI.Services
     
     public class ThermostatService(IPanelService panelService) : IThermostatService
     {
-        private readonly Lock _lock = new();
+        private readonly SemaphoreSlim _lock = new(1,1);
         bool _isWorking = true;
-
-        public event Action<bool>? StatusChange;
+        
+        public event Func<bool,Task>? StatusChange;
 
         public bool Isworking()
         {
@@ -20,22 +20,28 @@ namespace VendingMachineAPI.Services
 
         public async Task SetIsworking(bool working)
         {
-            lock (_lock)
+            await _lock.WaitAsync();
+            try
             {
-                if( _isWorking != working)
+                if (_isWorking != working)
                 {
                     _isWorking = working;
                     StatusChange?.Invoke(working);
                 }
-                
-            }
 
-            if (_isWorking) {
-                await panelService.NotifyPanelAsync("System ready please select a product ", new VendingState() { ThermostatWorking=true });
+
+                if (_isWorking)
+                {
+                    await panelService.NotifyPanelAsync("System ready please select a product ", new VendingState() { ThermostatWorking = true });
+                }
+                else
+                {
+                    await panelService.NotifyPanelAsync("System out of order ", new VendingState() { ThermostatWorking = false });
+                }
             }
-            else
+            finally
             {
-                await panelService.NotifyPanelAsync("System out of order ", new VendingState() { ThermostatWorking = false });
+                _lock.Release();
             }
         }
 

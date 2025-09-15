@@ -6,6 +6,6 @@
 
         Task SetIsworking(bool working);
 
-        public event Action<bool>? StatusChange;
+        public event Func<bool,Task>? StatusChange;
     }
 }

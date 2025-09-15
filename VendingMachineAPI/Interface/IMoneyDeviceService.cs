@@ -2,7 +2,7 @@
 {
     public interface IMoneyDeviceService
     {
-        event Action<decimal> BalanceChanged;
+        event Func<decimal,Task>? BalanceChanged;
         Task InsetMoneyAsync(decimal amount);
 
         decimal GetBalance();

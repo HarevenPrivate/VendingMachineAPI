@@ -19,7 +19,7 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
     private readonly IProductRepository _productRepository;
     private readonly IMoneyDeviceService _moneyDeviceService;
     private readonly IThermostatService _thermostatService;
-    private readonly Lock _lock = new();
+    private readonly SemaphoreSlim _lock = new(1,1);
 
     // The machine state (single-authority)
     private readonly VendingState _state = new();
@@ -37,10 +37,10 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
         _moneyDeviceService.BalanceChanged += OnBalanceChanged;
     }
 
-    private async void OnBalanceChanged(decimal amount)
+    private async Task OnBalanceChanged(decimal amount)
     {
-        await NotifyPanelAsync(_state.Display);
-        lock (_state)
+        await _lock.WaitAsync();
+        try
         {
             if (_state.Status == VendingStateSatus.ProductSeletedMissingMoey)
             {
@@ -62,12 +62,15 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
                         _state.Display = $"{productName} cost {price:C}, Missing {missing:C}";
 
                     }
+                    await NotifyPanelAsync(_state.Display);
                 }
 
             }
         }
-        await NotifyPanelAsync(_state.Display);
-
+        finally
+        {             
+            _lock.Release();
+        }
     }
 
     #region Public API - enqueue events
@@ -242,8 +245,6 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
                     : $"Dispensing {selection} Name: {description}";
             }
 
-            // Dispense product and return change if any (simulate hardware calls)
-            await DispenseProductAsync(selection);
 
             lock (_state)
             {
@@ -305,17 +306,6 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
     }
 
     
-
-    #endregion
-
-    #region Hardware stubs (async)
-
-    private Task DispenseProductAsync(string selection)
-    {
-        // TODO: send command to physical dispenser. For now simulate delay.
-        Console.WriteLine($"[HW] Dispense product {selection}");
-        return Task.Delay(250); // simulate small latency
-    }
 
     #endregion
 
