@@ -56,7 +56,7 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
                     }
                     else
                     {
-                        decimal missing = price - _moneyDeviceService.GetBalance();
+                        decimal missing = price - await _moneyDeviceService.GetBalance();
                         _state.Display = $"Please press ok to take the {productName}";
                         _state.BlockInputs = true;
                         _state.Display = $"{productName} cost {price:C}, Missing {missing:C}";
@@ -165,8 +165,8 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
     private async Task HandleOkAsync()
     {
         string? selection;
-        
 
+        decimal refundAmount = await _moneyDeviceService.GetBalance();
         lock (_state)
         {
             if (!_thermostatService.Isworking())
@@ -183,7 +183,7 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
 
             if (_state.Status == VendingStateSatus.OperationCancelling)
             {
-                decimal refundAmount = _moneyDeviceService.GetBalance();
+                
                 _state.Inserted = 0;
                 _state.Status = VendingStateSatus.Ready;
                 _state.Selection = null;
@@ -218,11 +218,9 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
         if (selection == null || !_productRepository.IsExist(selection))
         {
             // Invalid product -> refund any money
-            decimal refundAmount;
             lock (_state)
             {
-                refundAmount = _moneyDeviceService.GetBalance();
-                _state.Inserted = _moneyDeviceService.GetBalance();
+                _state.Inserted = refundAmount;
                 _state.Status = VendingStateSatus.ProductNotAvailable;
                 _state.Selection = null;
                 _state.BlockInputs = true;
@@ -239,9 +237,9 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
 
         var (price, description) = _productRepository.GetProduct(selection);
         // valid product
-        if (_moneyDeviceService.GetBalance() >= price)
+        if (refundAmount >= price)
         {
-            decimal change = _moneyDeviceService.GetBalance() - price;
+            decimal change = refundAmount - price;
 
             lock (_state)
             {
@@ -265,7 +263,7 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
         }
         else
         {
-            decimal missing = price - _moneyDeviceService.GetBalance();
+            decimal missing = price - refundAmount;
             lock (_state)
             {
                 _state.Display = $"{description} cost {price:C}, Missing {missing:C}";
@@ -280,7 +278,7 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
 
     private async Task HandleCancelAsync()
     {
-        decimal refundAmount;
+        decimal refundAmount = await _moneyDeviceService.GetBalance();
         lock (_state)
         {
             if (!_thermostatService.Isworking())
@@ -290,9 +288,6 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
                 return;
             }
 
-            
-
-            refundAmount = _moneyDeviceService.GetBalance();
             if (  _state.Status == VendingStateSatus.ProductNotAvailable)
             {
                 

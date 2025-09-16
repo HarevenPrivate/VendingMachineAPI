@@ -8,6 +8,7 @@ namespace VendingMachineAPI.Services
     {
         private decimal _amount = 0;
         private readonly SemaphoreSlim _lock = new(1,1);
+        private readonly SemaphoreSlim _lockWorking = new(1, 1);
 
         public event Func<decimal,Task>? BalanceChanged;
         private IHubContext<MoneyHub> _moneyHub;
@@ -23,40 +24,59 @@ namespace VendingMachineAPI.Services
 
         private async Task _thermostatService_StatusChange(bool working)
         {
-            if (!working)
-            {
-                decimal refund = _amount;
-                await RefundAsync();
-                await NotifyMoneyAsync($"Refund: {refund} Total balance 0 \n System out of ordr ", refund);
-            }
-            else
-            {
-                await NotifyMoneyAsync($"Please insert Money .... ", _amount);
-            }
-        }
-
-        public async Task InsetMoneyAsync(decimal amount)
-        {
-            await _lock.WaitAsync();
+            await _lockWorking.WaitAsync();
             try
             {
-                _amount += amount;
+
+
+                if (!working)
+                {
+                    decimal refund = _amount;
+                    await RefundAsync();
+                    await NotifyMoneyAsync($"Refund: {refund} Total balance 0 \n System out of ordr ", refund);
+                }
+                else
+                {
+                    await NotifyMoneyAsync($"Please insert Money .... ", _amount);
+                }
+            }
+            finally
+            {
+                _lockWorking.Release();
+            }
+        }
+        public async Task InsetMoneyAsync(decimal amount)
+        {
+            await _lockWorking.WaitAsync();
+            try
+            {
+                await _lock.WaitAsync();
+                try
+                {
+                    _amount += amount;
+                }
+                finally
+                {
+                    _lock.Release();
+                }
+               
 
                 await NotifyMoneyAsync($"Total balance: {_amount}", _amount);
 
                 if (!_thermostatService.Isworking())
                 {
-                    RefundAsync();
+                    await RefundAsync();
                 }
                 else
                 {
                     // Fire the event when money is inserted
-                    BalanceChanged?.Invoke(_amount);
+                    if(BalanceChanged != null)
+                        await BalanceChanged(_amount);
                 }
             }
             finally
             {
-                _lock.Release();
+                _lockWorking.Release();
             }
         }
 
@@ -71,11 +91,16 @@ namespace VendingMachineAPI.Services
         }
         
 
-        public decimal GetBalance()
+        public async Task<decimal> GetBalance()
         {
-            lock (_lock)
+            await _lock.WaitAsync();
+            try
             {
                 return _amount;
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
 

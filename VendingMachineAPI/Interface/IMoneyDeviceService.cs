@@ -5,7 +5,7 @@
         event Func<decimal,Task>? BalanceChanged;
         Task InsetMoneyAsync(decimal amount);
 
-        decimal GetBalance();
+        Task<decimal> GetBalance();
         Task RefundAsync(decimal price);
     }
 }
