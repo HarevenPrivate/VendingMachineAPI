@@ -26,7 +26,8 @@ namespace VendingMachineAPI.Services
                 if (_isWorking != working)
                 {
                     _isWorking = working;
-                    StatusChange?.Invoke(working);
+                    if(StatusChange != null) 
+                        await StatusChange(working);
                 }
 
 
