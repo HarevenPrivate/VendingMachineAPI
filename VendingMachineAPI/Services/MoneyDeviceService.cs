@@ -31,9 +31,8 @@ namespace VendingMachineAPI.Services
             }
             else
             {
-                await NotifyMoneyAsync($"Please insert Money .... ",_amount);
+                await NotifyMoneyAsync($"Please insert Money .... ", _amount);
             }
-            
         }
 
         public async Task InsetMoneyAsync(decimal amount)
@@ -47,7 +46,7 @@ namespace VendingMachineAPI.Services
 
                 if (!_thermostatService.Isworking())
                 {
-                    await RefundAsync();
+                    RefundAsync();
                 }
                 else
                 {
@@ -83,12 +82,18 @@ namespace VendingMachineAPI.Services
         public async  Task RefundAsync(decimal price = 0)
         {
             decimal refund;
-            lock (_lock)
+            await _lock.WaitAsync();
+            try
             {
                 refund = _amount - price;
                 _amount = 0;
+                await NotifyMoneyAsync($"Refund: {refund} Total balance 0", refund);
             }
-            await NotifyMoneyAsync($"Refund: {refund} Total balance 0", refund);
+            finally
+            {
+                _lock.Release();
+            }
+            
         }
     }
 }

@@ -176,7 +176,12 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
                 return;
             }
 
-            if(_state.Status == VendingStateSatus.OperationCancelling)
+            if (_state.Status == VendingStateSatus.ProductNotAvailable)
+            {
+                return;
+            }
+
+            if (_state.Status == VendingStateSatus.OperationCancelling)
             {
                 decimal refundAmount = _moneyDeviceService.GetBalance();
                 _state.Inserted = 0;
@@ -278,9 +283,19 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
         decimal refundAmount;
         lock (_state)
         {
-            if(  _state.Status == VendingStateSatus.ProductNotAvailable)
+            if (!_thermostatService.Isworking())
             {
-                refundAmount = _moneyDeviceService.GetBalance();
+                _state.Display = "Thermostat error - cannot proceed";
+                _ = NotifyPanelAsync(_state.Display);
+                return;
+            }
+
+            
+
+            refundAmount = _moneyDeviceService.GetBalance();
+            if (  _state.Status == VendingStateSatus.ProductNotAvailable)
+            {
+                
                 _state.Inserted = 0;
                 _state.Selection = null;
                 _state.BlockInputs = false;
@@ -288,15 +303,20 @@ public sealed class VendingMachineService : IVendingMachineService, IAsyncDispos
                 _state.Display = refundAmount > 0 ? $"Cancelled - Refunding {refundAmount:C}" : "Cancelled";
                 _moneyDeviceService.RefundAsync(0);
             }
+            else if (_state.Selection == null || _state.Selection.Length < 2)
+            {
+                _state.Display = "Please select a product";
+                _ = NotifyPanelAsync(_state.Display);
+                return;
+            }
             else
             {
-                refundAmount = _moneyDeviceService.GetBalance();
-                _state.Inserted = _moneyDeviceService.GetBalance();
+                _state.Inserted = refundAmount;
                 _state.Selection = null;
                 _state.BlockInputs = true;
                 _state.Status = VendingStateSatus.OperationCancelling;
                 _state.Display = refundAmount > 0 ? $"Cancelled - Press OK for Refunding {refundAmount:C}" : "Cancelled press OK to finish operation";
-                
+
             }
             // If there is nothing to cancel, just display Cancelled
 
