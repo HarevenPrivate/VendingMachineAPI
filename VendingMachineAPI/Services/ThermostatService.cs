@@ -18,7 +18,7 @@ namespace VendingMachineAPI.Services
             }
         }
 
-        public async Task SetIsworking(bool working)
+        public async Task SetIsworkingAsync(bool working)
         {
             await _lock.WaitAsync();
             try
@@ -33,11 +33,11 @@ namespace VendingMachineAPI.Services
 
                 if (_isWorking)
                 {
-                    await panelService.NotifyPanelAsync("System ready please select a product ", new VendingState() { ThermostatWorking = true });
+                    await panelService.NotifyPanelAsync("System ready please select a product ... ");
                 }
                 else
                 {
-                    await panelService.NotifyPanelAsync("System out of order ", new VendingState() { ThermostatWorking = false });
+                    await panelService.NotifyPanelAsync("System out of order");
                 }
             }
             finally

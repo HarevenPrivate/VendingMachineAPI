@@ -6,20 +6,21 @@ using VendingMachineAPI.Models;
 
 namespace VendingMachineAPI.Services;
 
-public record PanelUpdate(DateTime Timestamp, string Message, VendingState Snapshot);
+public record PanelUpdate(DateTime Timestamp, string Message);
 
 
 
 public class PanelService(IHubContext<PanelHub> hubContext) : IPanelService
 {
-    public async Task NotifyPanelAsync(string message, VendingState state)
+    public async Task NotifyPanelAsync(string message)
     {
         await hubContext.Clients.All.SendAsync("PanelUpdate", new
         {
             Timestamp = DateTime.UtcNow,
             Message = message,
-            Snapshot = state
         });
     }
+
+
 }
 

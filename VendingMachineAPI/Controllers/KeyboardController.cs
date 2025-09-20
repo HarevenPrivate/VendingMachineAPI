@@ -1,14 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Threading.Channels;
 using VendingMachineAPI.Interface;
+using VendingMachineAPI.Models;
 using VendingMachineAPI.Services;
 
 namespace VendingMachineAPI.Controllers;
 
 [ApiController]
 [Route("api/keyboard")]
-public class KeyboardController(IKeyboardService keyboardService) : ControllerBase
+public class KeyboardController(Channel<VendingEvent> channel) : ControllerBase
 {
-    private readonly IKeyboardService _keyboardService = keyboardService;
+    //private readonly IKeyboardService _keyboardService = keyboardService;
+    //private readonly Channel<VendingEvent> _channel;
 
     [HttpPost("press")]
     public async Task<IActionResult> Press([FromBody] KeyDto dto)
@@ -19,11 +22,11 @@ public class KeyboardController(IKeyboardService keyboardService) : ControllerBa
         var key = dto.Key.Trim().ToUpperInvariant();
 
         if (key == "OK")
-            await _keyboardService.EnqueueOkAsync();
+            await channel.Writer.WriteAsync(new OkEvent());
         else if (key == "CANCEL")
-            await _keyboardService.EnqueueCancelAsync();
+            await channel.Writer.WriteAsync(new CancelEvent());
         else
-            await _keyboardService.EnqueueKeyPressAsync(key);
+            await channel.Writer.WriteAsync(new KeyPressEvent(dto.Key));
 
         return Accepted();
     }

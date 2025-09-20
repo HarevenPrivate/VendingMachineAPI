@@ -11,18 +11,18 @@ namespace VendingMachineAPI.Services
         private readonly SemaphoreSlim _lockWorking = new(1, 1);
 
         public event Func<decimal,Task>? BalanceChanged;
-        private IHubContext<MoneyHub> _moneyHub;
-        private IThermostatService _thermostatService;
+        private readonly IHubContext<MoneyHub> _moneyHub;
+        private readonly IThermostatService _thermostatService;
 
         public MoneyDeviceService(IHubContext<MoneyHub> moneyHub, IThermostatService thermostatService)
         {
             _moneyHub = moneyHub;
             _thermostatService = thermostatService;
-            _thermostatService.StatusChange += _thermostatService_StatusChange;
+            _thermostatService.StatusChange += ThermostatService_StatusChange;
         }
 
 
-        private async Task _thermostatService_StatusChange(bool working)
+        private async Task ThermostatService_StatusChange(bool working)
         {
             await _lockWorking.WaitAsync();
             try

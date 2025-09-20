@@ -4,7 +4,7 @@
     {
         bool Isworking();
 
-        Task SetIsworking(bool working);
+        Task SetIsworkingAsync(bool working);
 
         public event Func<bool,Task>? StatusChange;
     }

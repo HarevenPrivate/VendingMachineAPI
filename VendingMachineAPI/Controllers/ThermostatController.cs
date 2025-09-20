@@ -9,9 +9,9 @@ namespace VendingMachineAPI.Controllers;
 public class ThermostatController(IThermostatService thermostatService) : ControllerBase
 {
     [HttpPost("status")]
-    public IActionResult Status([FromBody] ThermostatDto dto)
+    public  async Task<IActionResult> Status([FromBody] ThermostatDto dto)
     {
-        thermostatService.SetIsworking( dto.Working);
+        await thermostatService.SetIsworkingAsync( dto.Working);
         return Accepted();
     }
 

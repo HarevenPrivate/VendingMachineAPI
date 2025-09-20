@@ -1,9 +1,7 @@
-﻿using VendingMachineAPI.Models;
-
-namespace VendingMachineAPI.Interface;
+﻿namespace VendingMachineAPI.Interface;
 
 public interface IPanelService
 {
-    Task NotifyPanelAsync(string message, VendingState state);
+    Task NotifyPanelAsync(string message);
 }
 
