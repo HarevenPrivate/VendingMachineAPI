@@ -38,7 +38,7 @@ public class ReadyState : IVendingState
         {
             await context.NotifyAsync("Product not available. Press Cancel.");
             // switch state
-            context.TransitionTo(new ProductNotAvailableState());
+            await context.TransitionToAsync(new ProductNotAvailableState());
             return;
         }
 
@@ -69,7 +69,7 @@ public class ReadyState : IVendingState
 
             await context.NotifyAsync(display);
             // switch to MissingMoneyState
-            context.TransitionTo(new MissingMoneyState());
+            await context.TransitionToAsync(new MissingMoneyState());
         }
     }
 
@@ -82,7 +82,7 @@ public class ReadyState : IVendingState
 
         await context.NotifyAsync(display);
 
-        context.TransitionTo(new OperationCancellingState());
+        await context.TransitionToAsync(new OperationCancellingState());
     }
 }
 

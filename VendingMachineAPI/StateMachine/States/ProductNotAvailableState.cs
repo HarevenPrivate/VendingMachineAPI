@@ -40,6 +40,6 @@ public class ProductNotAvailableState : IVendingState
         await context.NotifyAsync(display);
 
         // Transition back to ReadyState
-        context.TransitionTo(new ReadyState());
+        await context.TransitionToAsync(new ReadyState());
     }
 }

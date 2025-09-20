@@ -23,7 +23,7 @@ public class OperationCancellingState : IVendingState
         context.Selection = null;
         
         await context.NotifyAsync(display);
-        context.TransitionTo(new ReadyState());
+        await context.TransitionToAsync(new ReadyState());
     }
 
     public Task OnCancelAsync(IVendingContext context)

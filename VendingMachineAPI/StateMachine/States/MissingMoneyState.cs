@@ -31,7 +31,7 @@ public class MissingMoneyState : IVendingState
         if( context.Selection == null || context.Selection.Length != 2)
         {
             // No selection, should not be here
-            context.TransitionTo(new ReadyState());
+            await context.TransitionToAsync(new ReadyState());
             return;
         }
         string display;
@@ -69,7 +69,7 @@ public class MissingMoneyState : IVendingState
             // Reset
             context.Selection = null;
             await context.NotifyAsync(display);
-            context.TransitionTo(new ReadyState());
+            await context.TransitionToAsync(new ReadyState());
         }
         else
         {
@@ -90,7 +90,7 @@ public class MissingMoneyState : IVendingState
         await context.NotifyAsync(display);
 
         // Transition into cancellation flow
-        context.TransitionTo(new OperationCancellingState());
+        await context.TransitionToAsync(new OperationCancellingState());
     }
 }
 

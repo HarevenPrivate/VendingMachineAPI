@@ -5,7 +5,7 @@ namespace VendingMachineAPI.StateMachine.Interface;
 public interface IVendingContext
 {
     // Transitions between states
-    void TransitionTo(IVendingState newState);
+    Task TransitionToAsync(IVendingState newState);
 
     // Accessors to machine metadata or services
     Task NotifyAsync(string message);
